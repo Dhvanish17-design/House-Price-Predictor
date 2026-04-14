@@ -16,10 +16,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Load model and locations
 try:
-    __model = joblib.load('model.pkl')
-    with open('locations.json', 'r') as f:
+    __model = joblib.load(os.path.join(BASE_DIR, 'model.pkl'))
+    with open(os.path.join(BASE_DIR, 'locations.json'), 'r') as f:
         data = json.load(f)
         __data_columns = data['data_columns']
         __feature_importances = data.get('feature_importances', {})
@@ -27,7 +29,7 @@ try:
         __nested_locations = data.get('nested_locations', {})
         __property_types = data.get('property_types', [])
         
-    with open('historical_sales.json', 'r') as f:
+    with open(os.path.join(BASE_DIR, 'historical_sales.json'), 'r') as f:
         __historical_sales = json.load(f)
 except Exception as e:
     print(f"Error loading model artifacts: {e}")
