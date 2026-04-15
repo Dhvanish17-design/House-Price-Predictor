@@ -4,7 +4,7 @@ import { Loader2, ArrowRightLeft, Maximize, Bath, Bed, Clock, MapPin, Map, Build
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, YAxis, CartesianGrid, Legend } from 'recharts';
 import CityDropdown from './CityDropdown';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:8000/api' : '/api');
+const API_BASE_URL = '/api';
 
 const ComparisonView = ({ cities = [], nestedLocations = {}, propertyTypes = [] }) => {
   const [prop1, setProp1] = useState({ city: '', area: '', property_type: '', sqft: 1000, bhk: 2, bath: 2, age: 5 });

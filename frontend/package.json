@@ -5,8 +5,7 @@
   "homepage": "https://dhvanish17-design.github.io/House-Price-Predictor",
   "type": "module",
 "scripts": {
-  "dev-frontend": "vite",
-  "dev": "concurrently \"vite\" \"cd ../backend && venv\\Scripts\\python.exe app.py\"",
+    "dev": "vite",
   "build": "vite build",
   "predeploy": "npm run build",
   "deploy": "gh-pages -d dist",
@@ -26,7 +25,6 @@
     "@tailwindcss/postcss": "^4.2.2",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.27",
-    "concurrently": "^9.2.1",
     "gh-pages": "^6.3.0",
     "postcss": "^8.5.9",
     "tailwindcss": "^4.2.2"
