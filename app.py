@@ -78,8 +78,9 @@ def predict_price():
     try:
         # Get data from JSON request
         data = request.get_json()
+        print("Incoming data:", data)
         if not data:
-            return jsonify({"detail": "No input data provided"}), 400
+            return {"error": "No input data provided"}, 400
             
         city = data.get('city')
         area = data.get('area')
@@ -200,7 +201,10 @@ def predict_price():
             "insights": insights
         })
     except Exception as e:
-        return jsonify({"detail": str(e)}), 400
+        import traceback
+        print("ERROR:", str(e))
+        print(traceback.format_exc())
+        return {"error": str(e)}, 500
 
 # Catch-all route for SPA (React Router) compatibility
 @app.route('/<path:path>')
