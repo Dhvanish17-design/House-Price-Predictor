@@ -24,6 +24,12 @@ try:
         
     with open(os.path.join(BASE_DIR, 'historical_sales.json'), 'r') as f:
         __historical_sales = json.load(f)
+        
+    # Ensure model compatibility across scikit-learn versions (specifically for 'monotonic_cst')
+    if __model and hasattr(__model, 'estimators_'):
+        for tree in __model.estimators_:
+            if not hasattr(tree, 'monotonic_cst'):
+                tree.monotonic_cst = None
 except Exception as e:
     print(f"Error loading model artifacts: {e}")
     __model = None
