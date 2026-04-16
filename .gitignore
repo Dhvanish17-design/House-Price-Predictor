@@ -1,32 +1,47 @@
-# Node.js / Vite (Frontend)
-frontend/node_modules/
-frontend/dist/
-frontend/npm-debug.log*
-frontend/yarn-debug.log*
-frontend/yarn-error.log*
-frontend/.pnpm-debug.log*
-frontend/.env
-frontend/.env.local
-frontend/.env.development.local
-frontend/.env.test.local
-frontend/.env.production.local
-frontend/.vite
-frontend/.eslintcache
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Python / FastAPI (Backend)
-backend/__pycache__/
-backend/*.py[cod]
-backend/*$py.class
-backend/venv/
-backend/.venv/
-backend/env/
-backend/pip-log.txt
-backend/pip-delete-this-directory.txt
-backend/.pytest_cache/
-backend/.coverage
-backend/coverage.xml
-backend/htmlcov/
-backend/.DS_Store
+# Virtual Environment
+venv/
+.venv/
+ENV/
+
+# Data / Models (Keep these as they are core to functionality)
+# !model.pkl
+# !locations.json
+# !historical_sales.json
+
+# Logs
+*.log
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage
+.cache
+.pytest_cache/
+.coverage
+*.db
+*.sqlite
 
 # IDEs and Editors
 .vscode/
@@ -43,3 +58,8 @@ backend/.DS_Store
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Flask / Local Config
+.env
+instance/
+.webassets-cache

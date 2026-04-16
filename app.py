@@ -1,20 +1,13 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from flask import Flask, request, jsonify, abort, render_template
+from flask_cors import CORS
 import joblib
 import json
 import numpy as np
 import os
 
-app = FastAPI(title="Smart Real Estate Price Predictor API")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = Flask(__name__)
+# Enable CORS for all routes
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -40,43 +33,45 @@ except Exception as e:
     __nested_locations = {}
     __property_types = []
     __historical_sales = []
+    
+@app.route("/", methods=['GET'])
+def home():
+    return render_template("index.html")
 
-class PredictRequest(BaseModel):
-    city: str
-    area: str
-    property_type: str
-    sqft: float
-    bhk: int
-    bath: int
-    age: int
 
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to Smart Real Estate Price Predictor API"}
-
-@app.get("/api/locations")
+@app.route("/api/locations", methods=['GET'])
 def get_locations():
-    return {
+    return jsonify({
         "cities": __cities,
         "nested_locations": __nested_locations,
         "property_types": __property_types
-    }
+    })
 
-@app.get("/api/feature-importance")
+@app.route("/api/feature-importance", methods=['GET'])
 def get_feature_importance():
-    return {"feature_importances": __feature_importances}
+    return jsonify({"feature_importances": __feature_importances})
 
-@app.post("/api/predict")
-def predict_price(request: PredictRequest):
+@app.route("/api/predict", methods=['POST'])
+def predict_price():
     if not __model or not __data_columns:
-         raise HTTPException(status_code=500, detail="Model is not loaded")
+         return jsonify({"detail": "Model is not loaded"}), 500
          
     try:
+        # Get data from JSON request
+        data = request.get_json()
+        if not data:
+            return jsonify({"detail": "No input data provided"}), 400
+            
+        city = data.get('city')
+        area = data.get('area')
+        property_type = data.get('property_type')
+        sqft = float(data.get('sqft', 0))
+        bhk = int(data.get('bhk', 0))
+        bath = int(data.get('bath', 0))
+        age = int(data.get('age', 0))
+
         # Build feature vector
         x = np.zeros(len(__data_columns))
-        # Feature order from train_model.py: total_sqft, bhk, bath, age, [loc...]
-        # Wait, the df columns in train_model.py are: 'total_sqft', 'bhk', 'bath', 'age'
-        # Let's check which index they are. We can dynamically find them.
         
         sqft_idx = __data_columns.index('total_sqft') if 'total_sqft' in __data_columns else 0
         bhk_idx = __data_columns.index('bhk') if 'bhk' in __data_columns else 1
@@ -84,17 +79,17 @@ def predict_price(request: PredictRequest):
         age_idx = __data_columns.index('age') if 'age' in __data_columns else 3
         months_ago_idx = __data_columns.index('months_ago') if 'months_ago' in __data_columns else -1
         
-        x[sqft_idx] = request.sqft
-        x[bhk_idx] = request.bhk
-        x[bath_idx] = request.bath
-        x[age_idx] = request.age
+        x[sqft_idx] = sqft
+        x[bhk_idx] = bhk
+        x[bath_idx] = bath
+        x[age_idx] = age
         
         if months_ago_idx != -1:
             x[months_ago_idx] = 0 # Predicting for current market (0 months ago)
         
-        city_col = f"city_{request.city}".lower()
-        area_col = f"area_{request.area}".lower()
-        prop_col = f"property_type_{request.property_type}".lower()
+        city_col = f"city_{city}".lower()
+        area_col = f"area_{area}".lower()
+        prop_col = f"property_type_{property_type}".lower()
         
         if city_col in __data_columns:
             x[__data_columns.index(city_col)] = 1
@@ -112,7 +107,7 @@ def predict_price(request: PredictRequest):
         # Recent Comps lookup
         recent_comps = []
         if __historical_sales:
-            comps = [s for s in __historical_sales if s['city'].lower() == request.city.lower() and s['area'].lower() == request.area.lower() and s['property_type'].lower() == request.property_type.lower()]
+            comps = [s for s in __historical_sales if s['city'].lower() == city.lower() and s['area'].lower() == area.lower() and s['property_type'].lower() == property_type.lower()]
             comps.sort(key=lambda x: x['months_ago'])
             recent_comps = comps[:3] # Top 3 recent
             
@@ -122,7 +117,7 @@ def predict_price(request: PredictRequest):
                 avg_comp_price_per_sqft = sum(comp_prices_per_sqft) / len(comp_prices_per_sqft)
                 
                 # Projected price for requested sqft based on recent history
-                recent_sales_projected_price = (request.sqft * avg_comp_price_per_sqft) / 100000
+                recent_sales_projected_price = (sqft * avg_comp_price_per_sqft) / 100000
                 
                 # Ensemble 50/50 blend
                 predicted_price = (predicted_price + recent_sales_projected_price) / 2
@@ -130,8 +125,6 @@ def predict_price(request: PredictRequest):
         # Calculate price range and confidence from individual trees
         tree_predictions = []
         for tree in __model.estimators_:
-            # Each tree might require different formatting depending on exactly how it's saved, 
-            # but standard sklearn RF estimators take the same input.
             pred = tree.predict(x_pred)[0]
             tree_predictions.append(pred)
             
@@ -159,7 +152,7 @@ def predict_price(request: PredictRequest):
         ]
         
         # Breakdown & Insights
-        base_price_lakhs = (request.sqft * 4500) / 100000 # 4500 roughly represents average Gujarat base rate
+        base_price_lakhs = (sqft * 4500) / 100000 # 4500 roughly represents average Gujarat base rate
         location_premium = predicted_price - base_price_lakhs
         
         breakdown = [
@@ -178,7 +171,7 @@ def predict_price(request: PredictRequest):
         else:
             insights.append("Highly accessible price point—consider for rapid capital appreciation.")
         
-        return {
+        return jsonify({
             "prediction": round(predicted_price, 2),
             "prediction_unit": "Lakhs",
             "price_range": [round(price_range[0], 2), round(price_range[1], 2)],
@@ -186,6 +179,11 @@ def predict_price(request: PredictRequest):
             "recent_comps": formatted_comps,
             "breakdown": breakdown,
             "insights": insights
-        }
+        })
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return jsonify({"detail": str(e)}), 400
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port, debug=True)
+
