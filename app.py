@@ -5,7 +5,7 @@ import json
 import numpy as np
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', template_folder='templates')
 # Enable CORS for all routes
 CORS(app, resources={r"/*": {"origins": "*"}})
 
@@ -37,6 +37,19 @@ except Exception as e:
 @app.route("/", methods=['GET'])
 def home():
     return render_template("index.html")
+
+# Aliases for compatibility with different frontend versions
+@app.route("/locations", methods=['GET'])
+def get_locations_alias():
+    return get_locations()
+
+@app.route("/predict", methods=['POST'])
+def predict_price_alias():
+    return predict_price()
+
+@app.route("/feature-importance", methods=['GET'])
+def get_feature_importance_alias():
+    return get_feature_importance()
 
 
 @app.route("/api/locations", methods=['GET'])
@@ -182,6 +195,11 @@ def predict_price():
         })
     except Exception as e:
         return jsonify({"detail": str(e)}), 400
+
+# Catch-all route for SPA (React Router) compatibility
+@app.route('/<path:path>')
+def catch_all(path):
+    return render_template('index.html')
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
